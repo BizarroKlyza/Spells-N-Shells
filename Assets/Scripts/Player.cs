@@ -4,48 +4,69 @@ using UnityEngine;
 
 public class Player : MonoBehaviour {
 
+	public Gun gun;
+
 	public GameObject bullet;
-	float playerAngle;
+	public GameObject bullet2;
+	public GameObject bullet3;
+	public GameObject smoke;
+
+	public GameObject muzzleFlash;
+	public CameraShake cameraShake;
+	Vector3 mouseDirection;
+	float mouseDistance;
+
+	public float health = 100f;
+	public float maxHealth = 100f;
+	public float stamina = 100f;
+	public float maxStamina = 100f;
+	public float speed = 5f;
+
+	public Transform crosshair;
 
 	float Angle(Vector3 u, Vector3 v) {
-		//return Vector3.Angle(Vector3.right, v - u) * ((v.y < u.y) ? -1f : 1f);
-		return Mathf.Rad2Deg * Mathf.Atan2(v.y-u.y, v.x-u.x);
+		return Mathf.Atan2(v.y - u.y, v.x - u.x);
+	}
+
+	Vector2 Ang2Vec(float angle) {
+		return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
 	}
 
 	void Start() {
-
+		Cursor.visible = false;
 	}
 
 	void Update() {
 
-		//this.transform.position = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+		Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+		float angle = Angle(transform.position, mousePos);
+		mouseDirection = Ang2Vec(angle);
+		mouseDistance = Vector3.Distance(transform.position, mousePos);
+		Camera.main.transform.parent.parent.position = this.transform.position + -Vector3.forward + mouseDirection * mouseDistance * 0.15f;
+		crosshair.position = mousePos;
 
-		playerAngle = Angle(transform.position, Camera.main.ScreenToWorldPoint(Input.mousePosition));
+		gun.lookDirection = new Vector2(Mathf.Abs(mouseDirection.x), (mouseDirection.x > 0f ? 1f : -1f) * mouseDirection.y);
 
-		Debug.Log(playerAngle);
-
-		if (-90f < playerAngle && playerAngle < 90f) {
-			this.transform.localScale = new Vector3(-1, 1, 1);
+		if (-Mathf.PI * 0.5f < angle && angle < Mathf.PI * 0.5f) {
+			transform.localScale = new Vector3(-1, 1, 1);
 		} else {
-			this.transform.localScale = Vector3.one;
+			transform.localScale = Vector3.one;
 		}
 
-		if (Input.GetKeyDown(KeyCode.Mouse0)) {
+		if (Input.GetKey(KeyCode.Mouse0)) {
+			GetComponent<Rigidbody2D>().AddForce(-mouseDirection * 100f);
+			gun.Shoot(mouseDirection);
 
-			GameObject bulletClone = Instantiate(bullet, transform.position, Quaternion.identity);
-			bulletClone.GetComponent<Bullet>().Spawn(playerAngle);
+			Instantiate(muzzleFlash, transform.position + mouseDirection * 0.3f + -Vector3.forward, Quaternion.identity);
+			cameraShake.Shoot(Random.insideUnitCircle.normalized);
 
 		}
 	}
 
-	/*float PPU = 16;
 
-	void LateUpdate() {
-		Vector3 position = transform.localPosition;
+	void TakeDamage(float damage) {
+		health -= damage;
+		health = Mathf.Clamp(health, 0f, maxHealth);
+	}
 
-		position.x = (Mathf.Round(transform.position.x * PPU) / PPU) - transform.position.x;
-		position.y = (Mathf.Round(transform.position.y * PPU) / PPU) - transform.position.y;
-
-		transform.localPosition = position;
-	}*/
 }

@@ -4,35 +4,59 @@ using UnityEngine;
 
 public class Movement : MonoBehaviour {
 
-	public float speed = 5f;
-
 	Vector2 direction = Vector2.zero;
+	float rollStamina = 20f;
+	float rollSpeed = 8f;
+	float staminaRegen = 15;
+
+	bool regenStopped = false;
+	bool rolling = false;
 
 	Rigidbody2D rb2d;
+	Player player;
+
+	IEnumerator Roll() {
+		rb2d.velocity = direction * rollSpeed;
+		rolling = true;
+		yield return new WaitForSeconds(0.35f);
+		rolling = false;
+	}
+
+	IEnumerator StopRegen() {
+		regenStopped = true;
+		yield return new WaitForSeconds(2f);
+		regenStopped = false;
+	}
 
 	void Start() {
 
-		rb2d = this.GetComponent<Rigidbody2D>();
+		rb2d = GetComponent<Rigidbody2D>();
+		player = GetComponent<Player>();
+
 	}
 
 	void Update() {
 
-		if (Input.GetKey(KeyCode.W)) {
-			direction.y = 1;
-		} else if (Input.GetKey(KeyCode.S)) {
-			direction.y = -1;
-		} else { direction.y = 0; }
+		direction = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
 
-		if (Input.GetKey(KeyCode.A)) {
-			direction.x = -1;
-		} else if (Input.GetKey(KeyCode.D)) {
-			direction.x = 1;
-		} else { direction.x = 0; }
+		if (!rolling) {
 
-		//rb2d.AddForce(direction * speed * Time.deltaTime, ForceMode2D.Impulse);
+			rb2d.velocity = direction * player.speed;
+			if (Input.GetKeyDown(KeyCode.Space) && direction.magnitude > 0f) {
+				if (player.stamina > 0f) {
+					player.stamina -= rollStamina;
+					StartCoroutine(Roll());
+					StartCoroutine(StopRegen());
+				}
+			}
+		}
 
-		//this.transform.position += (Vector3)direction * speed * Time.deltaTime;
+		if (!regenStopped) {
+			player.stamina += Time.deltaTime * staminaRegen;
+			player.stamina = Mathf.Clamp(player.stamina, 0f, player.maxStamina);
 
-		rb2d.velocity = direction * speed * Time.deltaTime;
+		}
+
+
 	}
 }
